@@ -1,17 +1,31 @@
-from ajenti.util import public
-from datetime import datetime
+from __future__ import division
+from ajenti.util import public, str_fsize
+from datetime import datetime, timedelta as dt_timedelta
 from itertools import chain, imap
 import operator as op
 import chardet
 
 __all__ = ['ident', 'intbool', 'time', 'unixtime', 'timedelta', 'listof']
+const = lambda c: lambda x: c
 ident = lambda x: x
 intbool = lambda v: bool(int(v))
 time = lambda t: '%2d:%02d' % (int(t or 0) / 60, int(t or 0) % 60)
 unixtime = lambda t: datetime.fromtimestamp(int(t))
-timedelta = lambda t: datetime.timedelta(int(t) // 86400, int(t) % 86400)
+timedelta = lambda t: dt_timedelta(0, int(t))
 listof = lambda cast: lambda lst: map(cast, lst)
 sort = lambda listcast, field: lambda v: sorted(listcast(v), key=op.attrgetter(field))
+
+FILTERS = {
+        'str': str,
+        'unicode': unicode,
+        'size': str_fsize,
+        'date': lambda t: t.strftime('%d %b %Y'),
+        'time': lambda t: t.strftime('%H:%M'),
+        'datetime': lambda t: t.strftime('%d %b %Y, %H:%M'),
+        'percent': lambda v: '%0.2f%%' % (v * 100),
+        'truthy': bool,
+        'falsy': lambda v: not bool(v),
+        }
 
 @public
 def fixutf8(value):
@@ -67,6 +81,7 @@ class Model(object):
     _casts = {}
     _defaults = {}
     _keymap = {}
+    _filters = FILTERS
 
     def __init__(self, items=(), **kwargs):
         self.load(items, kwargs)
@@ -96,6 +111,20 @@ class Model(object):
         self._init()
 
     def __getattr__(self, key):
+        if '__' in key:
+            key, filter = key.split('__')
+            return self._filters[filter](getattr(self, key))
+
+        elif key.startswith('is_'):
+            key, test = key[3:].rsplit('_', 1)
+            print ('is', key, test, getattr(self, key))
+            return getattr(self, key) == test
+
+        elif key.startswith('isnt_'):
+            key, test = key[5:].rsplit('_', 1)
+            print ('isnt', key, test, getattr(self, key))
+            return getattr(self, key) != test
+
         try:
             return self._defaults[key]
         except KeyError:

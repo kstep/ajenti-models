@@ -9,4 +9,4 @@ info = PluginInfo(
 )
 
 def init():
-    pass
+    import api
