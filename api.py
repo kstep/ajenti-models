@@ -110,28 +110,39 @@ class Model(object):
 
         self._init()
 
+    def _cache(self, key, value):
+        setattr(self, key, value)
+        return value
+
     def __getattr__(self, key):
         if '__' in key:
-            key, filter = key.split('__')
+            if '__or__' in key:
+                names = key.split('__or__')
+                for name in names:
+                    try:
+                        return self._cache(key, getattr(self, name))
+                    except AttributeError:
+                        continue
+                raise AttributeError(key)
+
+            name, filter = key.split('__')
             try:
-                return self._filters[filter](getattr(self, key))
+                return self._cache(key, self._filters[filter](getattr(self, name)))
             except KeyError:
                 if filter == 'exists':
-                    return hasattr(self, key)
+                    return self._cache(key, hasattr(self, name))
                 elif filter == 'missing':
-                    return not hasattr(self, key)
+                    return self._cache(key, not hasattr(self, name))
                 else:
-                    raise
+                    raise AttributeError(key)
 
         elif key.startswith('is_'):
             key, test = key[3:].rsplit('_', 1)
-            print ('is', key, test, getattr(self, key))
-            return getattr(self, key) == test
+            return self._cache(key, getattr(self, key) == test)
 
         elif key.startswith('isnt_'):
             key, test = key[5:].rsplit('_', 1)
-            print ('isnt', key, test, getattr(self, key))
-            return getattr(self, key) != test
+            return self._cache(key, getattr(self, key) != test)
 
         try:
             return self._defaults[key]
