@@ -120,29 +120,29 @@ class Model(object):
                 names = key.split('__or__')
                 for name in names:
                     try:
-                        return self._cache(key, getattr(self, name))
+                        return getattr(self, name)
                     except AttributeError:
                         continue
                 raise AttributeError(key)
 
             name, filter = key.split('__')
             try:
-                return self._cache(key, self._filters[filter](getattr(self, name)))
+                return self._filters[filter](getattr(self, name))
             except KeyError:
                 if filter == 'exists':
-                    return self._cache(key, hasattr(self, name))
+                    return hasattr(self, name)
                 elif filter == 'missing':
-                    return self._cache(key, not hasattr(self, name))
+                    return not hasattr(self, name)
                 else:
                     raise AttributeError(key)
 
         elif key.startswith('is_'):
             name, test = key[3:].rsplit('_', 1)
-            return self._cache(key, getattr(self, name) == test)
+            return getattr(self, name) == test
 
         elif key.startswith('isnt_'):
             name, test = key[5:].rsplit('_', 1)
-            return self._cache(key, getattr(self, name) != test)
+            return getattr(self, name) != test
 
         try:
             return self._defaults[key]
