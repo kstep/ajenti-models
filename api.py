@@ -113,7 +113,15 @@ class Model(object):
     def __getattr__(self, key):
         if '__' in key:
             key, filter = key.split('__')
-            return self._filters[filter](getattr(self, key))
+            try:
+                return self._filters[filter](getattr(self, key))
+            except KeyError:
+                if filter == 'exists':
+                    return hasattr(self, key)
+                elif filter == 'missing':
+                    return not hasattr(self, key)
+                else:
+                    raise
 
         elif key.startswith('is_'):
             key, test = key[3:].rsplit('_', 1)
