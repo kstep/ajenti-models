@@ -137,12 +137,12 @@ class Model(object):
                     raise AttributeError(key)
 
         elif key.startswith('is_'):
-            key, test = key[3:].rsplit('_', 1)
-            return self._cache(key, getattr(self, key) == test)
+            name, test = key[3:].rsplit('_', 1)
+            return self._cache(key, getattr(self, name) == test)
 
         elif key.startswith('isnt_'):
-            key, test = key[5:].rsplit('_', 1)
-            return self._cache(key, getattr(self, key) != test)
+            name, test = key[5:].rsplit('_', 1)
+            return self._cache(key, getattr(self, name) != test)
 
         try:
             return self._defaults[key]
