@@ -1,30 +1,39 @@
 from __future__ import division
 from ajenti.util import public, str_fsize
-from datetime import datetime, timedelta as dt_timedelta
 from itertools import chain, imap
+import datetime as dt
 import operator as op
+import functools as ft
 import chardet
 
-__all__ = ['ident', 'intbool', 'time', 'unixtime', 'timedelta', 'listof']
+__all__ = ['ident', 'intbool', 'time', 'unixtime', 'timedelta', 'listof', 'ordered', 'compose', 'flip']
+
+def compose(*fs):
+    return lambda arg: reduce(lambda a, f: f(a), fs, arg)
+
+def flip(fn):
+    return lambda a, b: fn(b, a)
+
 const = lambda c: lambda x: c
 ident = lambda x: x
-intbool = lambda v: bool(int(v))
-time = lambda t: '%2d:%02d' % (int(t or 0) / 60, int(t or 0) % 60)
-unixtime = lambda t: datetime.fromtimestamp(int(t))
-timedelta = lambda t: dt_timedelta(0, int(t))
-listof = lambda cast: lambda lst: map(cast, lst)
-sort = lambda listcast, field: lambda v: sorted(listcast(v), key=op.attrgetter(field))
+
+intbool = compose(int, bool)
+time = compose(int, ft.partial(flip(divmod), 60), '%2d:%02d'.__mod__)
+unixtime = compose(int, dt.datetime.fromtimestamp)
+timedelta = compose(int, ft.partial(dt.timedelta, 0))
+listof = lambda cast: ft.partial(map, cast)
+ordered = lambda listcast, field: compose(listcast, ft.partial(sorted, key=op.attrgetter(field)))
 
 FILTERS = {
         'str': str,
         'unicode': unicode,
         'size': str_fsize,
-        'date': lambda t: t.strftime('%d %b %Y'),
-        'time': lambda t: t.strftime('%H:%M'),
-        'datetime': lambda t: t.strftime('%d %b %Y, %H:%M'),
-        'percent': lambda v: '%0.2f%%' % (v * 100),
+        'date': ft.partial(dt.datetime.strftime, format='%d %b %Y'),
+        'time': ft.partial(dt.datetime.strftime, format='%H:%M'),
+        'datetime': ft.partial(dt.datetime.strftime, format='%d %b %Y, %H:%M'),
+        'percent': compose(ft.partial(op.mul, 100), '%0.2f%%'.__mod__),
         'truthy': bool,
-        'falsy': lambda v: not bool(v),
+        'falsy': op.not_,
         }
 
 @public
@@ -54,7 +63,7 @@ def timestamp(d):
             '%Y',
             ):
         try:
-            return datetime.strptime(d, pattern)
+            return dt.datetime.strptime(d, pattern)
         except ValueError:
             continue
     return d
@@ -170,8 +179,14 @@ class Model(object):
     def __contains__(self, key):
         return hasattr(self, key)
 
+    def __len__(self):
+        return len(self.__dict__.keys())
+
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, repr(self.__dict__))
+
+    def __iter__(self):
+        return self.__dict__.iteritems()
 
     EMPTY = None
     class __metaclass__(type):
