@@ -24,18 +24,6 @@ timedelta = compose(int, ft.partial(dt.timedelta, 0))
 listof = lambda cast: ft.partial(map, cast)
 ordered = lambda listcast, field: compose(listcast, ft.partial(sorted, key=op.attrgetter(field)))
 
-FILTERS = {
-        'str': str,
-        'unicode': unicode,
-        'size': str_fsize,
-        'date': ft.partial(dt.datetime.strftime, format='%d %b %Y'),
-        'time': ft.partial(dt.datetime.strftime, format='%H:%M'),
-        'datetime': ft.partial(dt.datetime.strftime, format='%d %b %Y, %H:%M'),
-        'percent': compose(ft.partial(op.mul, 100), '%0.2f%%'.__mod__),
-        'truthy': bool,
-        'falsy': op.not_,
-        }
-
 @public
 def fixutf8(value):
     if not value:
@@ -90,7 +78,6 @@ class Model(object):
     _casts = {}
     _defaults = {}
     _keymap = {}
-    _filters = FILTERS
 
     def __init__(self, items=(), **kwargs):
         self.load(items, kwargs)
@@ -124,38 +111,18 @@ class Model(object):
         return value
 
     def __getattr__(self, key):
-        if '__' in key:
-            if '__or__' in key:
-                names = key.split('__or__')
+        try:
+            return self._defaults[key]
+
+        except KeyError:
+            if '__' in key:
+                names = key.split('__')
                 for name in names:
                     try:
                         return getattr(self, name)
                     except AttributeError:
                         continue
-                raise AttributeError(key)
 
-            name, filter = key.split('__')
-            try:
-                return self._filters[filter](getattr(self, name))
-            except KeyError:
-                if filter == 'exists':
-                    return hasattr(self, name)
-                elif filter == 'missing':
-                    return not hasattr(self, name)
-                else:
-                    raise AttributeError(key)
-
-        elif key.startswith('is_'):
-            name, test = key[3:].rsplit('_', 1)
-            return getattr(self, name) == test
-
-        elif key.startswith('isnt_'):
-            name, test = key[5:].rsplit('_', 1)
-            return getattr(self, name) != test
-
-        try:
-            return self._defaults[key]
-        except KeyError:
             raise AttributeError(key)
 
     def update(self, items=(), **kwargs):
