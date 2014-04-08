@@ -1,12 +1,13 @@
 from __future__ import division
 from ajenti.util import public, str_fsize
 from itertools import chain, imap
+import itertools as it
 import datetime as dt
 import operator as op
 import functools as ft
 import chardet
 
-__all__ = ['ident', 'intbool', 'time', 'unixtime', 'timedelta', 'listof', 'ordered', 'compose', 'flip']
+__all__ = ['ident', 'intbool', 'time', 'unixtime', 'timedelta', 'listof', 'dictof', 'ordered', 'compose', 'flip']
 
 def compose(*fs):
     return lambda arg: reduce(lambda a, f: f(a), fs, arg)
@@ -21,7 +22,13 @@ intbool = compose(int, bool)
 time = compose(int, ft.partial(flip(divmod), 60), '%2d:%02d'.__mod__)
 unixtime = compose(int, dt.datetime.fromtimestamp)
 timedelta = compose(int, ft.partial(dt.timedelta, 0))
+
 listof = lambda cast: ft.partial(map, cast)
+dictof = lambda cast, key: compose(
+        ft.partial(it.imap, cast),
+        ft.partial(it.imap, lambda o: (getattr(o, key), o)),
+        dict)
+
 ordered = lambda listcast, field: compose(listcast, ft.partial(sorted, key=op.attrgetter(field)))
 
 @public
