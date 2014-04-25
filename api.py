@@ -85,6 +85,7 @@ class Model(object):
     _casts = {}
     _defaults = {}
     _keymap = {}
+    _inherit = False
 
     def __init__(self, items=(), **kwargs):
         self.load(items, kwargs)
@@ -165,7 +166,29 @@ class Model(object):
     EMPTY = None
     class __metaclass__(type):
         def __init__(cls, name, bases, attrs):
+            casts = {}
+            defaults = {}
+            keymap = {}
+
+            for base in reversed(bases):
+                if getattr(base, '_inherit', True):
+                    casts.update(getattr(base, '_casts', {}))
+                    defaults.update(getattr(base, '_defaults', {}))
+                    keymap.update(getattr(base, '_keymap', {}))
+
+            casts.update(attrs.get('_casts', {}))
+            defaults.update(attrs.get('_defaults', {}))
+            keymap.update(attrs.get('_keymap', {}))
+
+            if casts:
+                attrs.setdefault('_casts', {}).update(casts)
+            if defaults:
+                attrs.setdefault('_defaults', {}).update(defaults)
+            if keymap:
+                attrs.setdefault('_keymap', {}).update(keymap)
+
             type.__init__(cls, name, bases, attrs)
+
             try:
                 cls.EMPTY = cls()
             except AttributeError:
