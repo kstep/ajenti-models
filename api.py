@@ -19,7 +19,7 @@ const = lambda c: lambda x: c
 ident = lambda x: x
 
 intbool = compose(int, bool)
-time = compose(int, ft.partial(flip(divmod), 60), '%2d:%02d'.__mod__)
+minutes = compose(int, ft.partial(flip(divmod), 60), '%2d:%02d'.__mod__)
 unixtime = compose(int, dt.datetime.fromtimestamp)
 timedelta = compose(int, ft.partial(dt.timedelta, 0))
 
@@ -52,16 +52,15 @@ def fixutf8(value):
 
 
 @public
-def timestamp(d):
-    for pattern in (
-            '%Y-%m-%dT%H:%M:%SZ',
-            '%Y',
-            ):
-        try:
-            return dt.datetime.strptime(d, pattern)
-        except ValueError:
-            continue
-    return d
+def timestamp(*patterns):
+    def parser(d):
+        for pattern in patterns:
+            try:
+                return dt.datetime.strptime(d, pattern)
+            except ValueError:
+                continue
+        return d
+    return parser
 
 @public
 def flatten(items):
