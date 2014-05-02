@@ -7,7 +7,7 @@ import operator as op
 import functools as ft
 import chardet
 
-__all__ = ['ident', 'intbool', 'time', 'unixtime', 'timedelta', 'listof', 'dictof', 'ordered', 'compose', 'flip']
+__all__ = ['ident', 'intbool', 'unixtime', 'timedelta', 'listof', 'dictof', 'ordered', 'compose', 'flip', 'minutes']
 
 def compose(*fs):
     return lambda arg: reduce(lambda a, f: f(a), fs, arg)
