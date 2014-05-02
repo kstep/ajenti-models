@@ -164,16 +164,17 @@ class Model(object):
 
     EMPTY = None
     class __metaclass__(type):
-        def __init__(cls, name, bases, attrs):
+        def __new__(cls, name, bases, attrs):
             casts = {}
             defaults = {}
             keymap = {}
 
             for base in reversed(bases):
-                if getattr(base, '_inherit', True):
-                    casts.update(getattr(base, '_casts', {}))
-                    defaults.update(getattr(base, '_defaults', {}))
-                    keymap.update(getattr(base, '_keymap', {}))
+                d = base.__dict__
+                if d.get('_inherit', True):
+                    casts.update(d.get('_casts', {}))
+                    defaults.update(d.get('_defaults', {}))
+                    keymap.update(d.get('_keymap', {}))
 
             casts.update(attrs.get('_casts', {}))
             defaults.update(attrs.get('_defaults', {}))
@@ -186,8 +187,10 @@ class Model(object):
             if keymap:
                 attrs.setdefault('_keymap', {}).update(keymap)
 
-            type.__init__(cls, name, bases, attrs)
+            return type.__new__(cls, name, bases, attrs)
 
+        def __init__(cls, name, bases, attrs):
+            type.__init__(cls, name, bases, attrs)
             try:
                 cls.EMPTY = cls()
             except AttributeError:
