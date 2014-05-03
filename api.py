@@ -193,6 +193,6 @@ class Model(object):
             type.__init__(cls, name, bases, attrs)
             try:
                 cls.EMPTY = cls()
-            except AttributeError:
+            except (AttributeError, TypeError):
                 pass
 
